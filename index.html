@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, viewport-fit=cover">
+    <title>Шахматы Онлайн Pro</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <style>
+        * { 
+            box-sizing: border-box; 
+            touch-action: none; 
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background-color: #302E2B;
+            color: #EEEED2;
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            width: 100vw;
+            height: 100vh;
+            max-width: 500px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+        }
+
+        .main-content {
+            margin: auto;
+            width: 100%;
+            text-align: center;
+            touch-action: auto;
+            position: relative;
+        }
+
+        .bg-knight {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 180px;
+            color: #769656;
+            opacity: 0.12;
+            pointer-events: none;
+            z-index: 0;
+            line-height: 1;
+        }
+
+        .menu-ui {
+            position: relative;
+            z-index: 2;
+        }
+
+        h1 { font-size: 30px; margin: 0 0 5px 0; letter-spacing: 1px; }
+        .subtitle { font-size: 13px; color: #9E9B96; margin-bottom: 15px; }
+
+        .btn {
+            background-color: #403D39;
+            color: white;
+            border: 2px solid transparent;
+            padding: 12px;
+            font-size: 15px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 5px 0;
+            width: 100%;
+            transition: 0.2s;
+            touch-action: auto;
+        }
+        .btn.primary { background-color: #769656; }
+        .btn.primary:hover { background-color: #5c7542; }
+        .btn.danger { background-color: #A94442; }
+        .btn.danger:hover { background-color: #8E3836; }
+
+        .profile-btn-menu {
+            background: #403D39;
+            color: #C9A227;
+            border: 1px solid #524E48;
+            padding: 12px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 10px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Выделяемые элементы интерфейса */
+        .color-pickers, .theme-pickers {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .color-btn {
+            flex: 1;
+            padding: 10px;
+            background: #403D39;
+            color: #9E9B96;
+            border: 2px solid transparent;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s ease;
+        }
+        .color-btn.active {
+            border-color: #769656 !important;
+            color: #FFFFFF !important;
+            background: #4A4743 !important;
+            box-shadow: 0 0 8px rgba(118, 150, 86, 0.5);
+        }
+
+        .form-group {
+            width: 100%;
+            margin: 8px 0;
+            text-align: left;
+            touch-action: auto;
+        }
+        label { font-size: 12px; font-weight: bold; color: #769656; display: block; margin-bottom: 4px; }
+        
+        input, select {
+            width: 100%;
+            padding: 10px;
+            background: #403D39;
+            color: white;
+            border: 2px solid #524E48;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            text-align: center;
+            touch-action: auto;
+            transition: border-color 0.2s;
+        }
+
+        select:focus, input:focus {
+            border-color: #769656;
+            outline: none;
+        }
+
+        .switch-group {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 0;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 46px;
+            height: 24px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #403D39;
+            transition: .3s;
+            border-radius: 24px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+        input:checked + .slider { background-color: #769656; }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+        /* Игровой экран */
+        #game-screen {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .game-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: min(88vw, 44vh);
+            background: #262421;
+            padding: 6px 10px;
+            border-radius: 8px;
+            border: 1px solid #403D39;
+        }
+
+        .board-wrapper {
+            position: relative;
+            width: min(88vw, 44vh);
+            height: min(88vw, 44vh);
+            user-select: none;
+        }
+        .board {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            width: 100%;
+            height: 100%;
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            position: relative;
+        }
+        .square {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: calc(min(88vw, 44vh) / 8.5);
+            cursor: pointer;
+            position: relative;
+            line-height: 1;
+        }
+
+        .square.selected { background-color: #F6F669 !important; }
+
+        .show-hints .square.move-dot::after {
+            content: '';
+            width: 30%;
+            height: 30%;
+            background-color: rgba(0, 0, 0, 0.25);
+            border-radius: 50%;
+            position: absolute;
+            z-index: 3;
+            pointer-events: none;
+        }
+
+        .show-hints .square.capture-ring::after {
+            content: '';
+            width: 80%;
+            height: 80%;
+            border: 5px solid rgba(0, 0, 0, 0.25);
+            border-radius: 50%;
+            position: absolute;
+            z-index: 3;
+            pointer-events: none;
+        }
+
+        .piece {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: calc(min(88vw, 44vh) / 8.5);
+            cursor: grab;
+            z-index: 5;
+        }
+
+        /* Настраиваемые цвета фигур */
+        .piece-white {
+            color: var(--white-piece-color, #FFFFFF) !important;
+            text-shadow: 
+                -1.5px -1.5px 0 #000,
+                 1.5px -1.5px 0 #000,
+                -1.5px  1.5px 0 #000,
+                 1.5px  1.5px 0 #000,
+                 0px 3px 5px rgba(0, 0, 0, 0.8);
+        }
+        
+        .piece-black {
+            color: var(--black-piece-color, #111111) !important;
+            text-shadow: 
+                -1px -1px 0 rgba(255, 255, 255, 0.8),
+                 1px -1px 0 rgba(255, 255, 255, 0.8),
+                -1px  1px 0 rgba(255, 255, 255, 0.8),
+                 1px  1px 0 rgba(255, 255, 255, 0.8);
+        }
+
+        .notation {
+            position: absolute;
+            font-size: 10px;
+            font-weight: bold;
+            color: #A9A9A9;
+            pointer-events: none;
+            z-index: 1;
+        }
+        .rank { top: 2px; left: 3px; }
+        .file { bottom: 2px; right: 3px; }
+
+        .player-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: min(88vw, 44vh);
+            background: #403D39;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: bold;
+        }
+        .player-info { display: flex; align-items: center; gap: 6px; }
+        .elo-badge { background: #302E2B; padding: 2px 6px; border-radius: 4px; color: #C9A227; font-size: 11px; }
+        .clock-time { font-size: 13px; font-weight: bold; }
+        .player-card.active { border: 1px solid #769656; }
+
+        .moves-history {
+            width: min(88vw, 44vh);
+            height: 32px;
+            background: #262421;
+            border-radius: 6px;
+            padding: 4px 8px;
+            font-size: 11px;
+            color: #9E9B96;
+            overflow-x: auto;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid #403D39;
+        }
+
+        #drag-ghost {
+            position: fixed;
+            font-size: 54px;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+            display: none;
+            line-height: 1;
+        }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body class="show-hints">
+
+<div id="drag-ghost"></div>
+
+<div class="container">
+    <!-- 1. ГЛАВНОЕ МЕНЮ -->
+    <div id="menu-main" class="main-content">
+        <div class="bg-knight">♞</div>
+        <div class="menu-ui">
+            <h1>ШАХМАТЫ</h1>
+            <div class="subtitle">Глобальная версия Pro</div>
+            <button class="btn primary" onclick="playClick(); showScreen('menu-mode')">ИГРАТЬ</button>
+            <button class="btn" onclick="playClick(); showScreen('menu-settings')">НАСТРОЙКИ ДОСКИ</button>
+            
+            <button class="profile-btn-menu" onclick="playClick(); showScreen('menu-profile')">
+                👤 Профиль: <span id="player-name-display">Игрок</span> (<span id="player-elo-display">100</span> ЭЛО)
+            </button>
+        </div>
+    </div>
+
+    <!-- 1.1 ЭКРАН ПРОФИЛЯ -->
+    <div id="menu-profile" class="main-content hidden">
+        <h1>Профиль игрока</h1>
+        <div class="form-group" style="text-align: center; margin: 10px 0;">
+            <div style="font-size: 40px; margin-bottom: 5px;">🏆</div>
+            <div id="profile-full-name" style="font-size: 18px; font-weight: bold; margin-bottom: 3px;">Игрок</div>
+            <div style="font-size: 14px; color: #C9A227; font-weight: bold; margin-bottom: 10px;">Рейтинг ЭЛО: <span id="profile-elo-val">100</span></div>
+            
+            <div style="background: #403D39; padding: 10px; border-radius: 8px; font-size: 13px; text-align: left; display: inline-block; width: 100%;">
+                <div style="font-weight: bold; color: #769656; margin-bottom: 4px; text-align: center;">Статистика матчей:</div>
+                <div>Всего игр: <span id="stat-total">0</span></div>
+                <div>Побед: <span id="stat-wins" style="color: #769656;">0</span></div>
+                <div>Поражений: <span id="stat-losses" style="color: #A94442;">0</span></div>
+                <div>Ничьих: <span id="stat-draws">0</span></div>
+            </div>
+        </div>
+        <button class="btn primary" onclick="playClick(); editProfile()">Изменить никнейм</button>
+        <button class="btn" style="color: #9E9B96;" onclick="playClick(); showScreen('menu-main')">&lt; Назад в меню</button>
+    </div>
+
+    <!-- 2. ВЫБОР РЕЖИМА -->
+    <div id="menu-mode" class="main-content hidden">
+        <h1>Режим игры</h1>
+        <button class="btn" onclick="playClick(); showScreen('menu-bot')">Игра с ботом</button>
+        <button class="btn primary" onclick="playClick(); showScreen('menu-online')">Игра с другом по сети</button>
+        <button class="btn" onclick="playClick(); startPvP()">1 на 1 (На одном экране)</button>
+        <button class="btn" style="color: #9E9B96;" onclick="playClick(); showScreen('menu-main')">&lt; Назад</button>
+    </div>
+
+    <!-- 3. ОНЛАЙН С ДРУГОМ -->
+    <div id="menu-online" class="main-content hidden">
+        <h1>Сетевая игра</h1>
+        <p style="font-size: 12px; color: #9E9B96;">6-значный код комнаты</p>
+        <div class="form-group">
+            <label>Контроль времени (для сети):</label>
+            <select id="online-time-control">
+                <option value="0">Без времени</option>
+                <option value="10">10 минут</option>
+                <option value="5">5 минут</option>
+                <option value="3">3 минуты</option>
+            </select>
+        </div>
+        <button class="btn primary" onclick="playClick(); createOnlineGame()">Создать комнату</button>
+        <div class="form-group" style="margin-top: 10px;">
+            <label>Введите 6-значный код друга:</label>
+            <input type="text" id="room-code-input" maxlength="6" placeholder="000000">
+        </div>
+        <button class="btn" onclick="playClick(); joinOnlineGame()">Подключиться</button>
+        <button class="btn" style="color: #9E9B96; margin-top: 10px;" onclick="playClick(); showScreen('menu-mode')">&lt; Назад</button>
+    </div>
+
+    <!-- 4. НАСТРОЙКИ БОТА И ВРЕМЕНИ -->
+    <div id="menu-bot" class="main-content hidden">
+        <h1>Игра с ботом</h1>
+        <div class="form-group">
+            <label>Сложность ИИ (тренировка):</label>
+            <div class="color-pickers" id="bot-diff-pickers">
+                <button class="color-btn active" onclick="selectBotDiff('easy', this)">Лёгкий</button>
+                <button class="color-btn" onclick="selectBotDiff('medium', this)">Средний</button>
+                <button class="color-btn" onclick="selectBotDiff('hard', this)">Сложный</button>
+                <button class="color-btn" onclick="selectBotDiff('extreme', this)">🔥Магнус</button>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Контроль времени:</label>
+            <select id="time-control">
+                <option value="0">Без времени (Бесконечно)</option>
+                <option value="10">10 минут</option>
+                <option value="5">5 минут</option>
+                <option value="3">3 минуты</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Выбор цвета:</label>
+            <div class="color-pickers">
+                <button class="color-btn active" id="btn-col-white" onclick="playClick(); setBotColor('white')">Белые</button>
+                <button class="color-btn" id="btn-col-rand" onclick="playClick(); setBotColor('random')">Случайно</button>
+                <button class="color-btn" id="btn-col-black" onclick="playClick(); setBotColor('black')">Черные</button>
+            </div>
+        </div>
+        <button class="btn primary" onclick="playClick(); startBotGame()">Начать игру</button>
+        <button class="btn" style="color: #9E9B96;" onclick="playClick(); showScreen('menu-mode')">&lt; Назад</button>
+    </div>
+
+    <!-- 5. НАСТРОЙКИ ДОСКИ И ТЕМ С НАСТРОЙКОЙ ЦВЕТА ФИГУР -->
+    <div id="menu-settings" class="main-content hidden">
+        <h1>Темы и доска</h1>
+        <div class="form-group">
+            <label>Тема доски:</label>
+            <div class="theme-pickers" id="theme-btn-group">
+                <button class="color-btn active" onclick="playClick(); setTheme('classic', '#EEEED2', '#769656', this)">Классика</button>
+                <button class="color-btn" onclick="playClick(); setTheme('wood', '#DEB887', '#8B4513', this)">Дерево</button>
+                <button class="color-btn" onclick="playClick(); setTheme('mono', '#E0E0E0', '#424242', this)">Моно</button>
+                <button class="color-btn" onclick="playClick(); setTheme('neon', '#1E1E2E', '#89B4FA', this)">Неон</button>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Цвет белых фигур:</label>
+            <input type="color" id="whitePiecePicker" value="#FFFFFF" onchange="updatePieceColors()">
+        </div>
+        <div class="form-group">
+            <label>Цвет черных фигур:</label>
+            <input type="color" id="blackPiecePicker" value="#111111" onchange="updatePieceColors()">
+        </div>
+
+        <div class="form-group switch-group">
+            <label style="margin:0;">Подсказки ходов:</label>
+            <label class="switch">
+                <input type="checkbox" id="hints-toggle" checked onchange="toggleHints()">
+                <span class="slider"></span>
+            </label>
+        </div>
+        <button class="btn" onclick="playClick(); showScreen('menu-main')">&lt; Назад</button>
+    </div>
+
+    <!-- 6. ИГРОВОЙ ЭКРАН -->
+    <div id="game-screen" class="hidden">
+        <div class="game-controls">
+            <button class="btn danger" style="width: auto; padding: 6px 12px; margin: 0; font-size: 12px;" onclick="playClick(); resignGame()">🏳️ Сдаться</button>
+            <div id="game-status" style="font-size: 12px; font-weight: bold;">Ход: Белые</div>
+            <button class="btn" style="width: auto; padding: 6px 12px; margin: 0; font-size: 12px;" onclick="playClick(); exitToMenu()">🏠 Меню</button>
+            <button id="flip-btn" class="btn hidden" style="width: auto; padding: 6px 10px; margin: 0; font-size: 12px;" onclick="playClick(); flipBoardPvP()">🔄</button>
+        </div>
+
+        <!-- Карточка соперника -->
+        <div id="card-top" class="player-card">
+            <div class="player-info">
+                <span>👤</span> <span id="top-name">Соперник</span>
+                <span class="elo-badge" id="top-elo">100</span>
+            </div>
+            <div id="top-time" class="clock-time">--:--</div>
+        </div>
+
+        <!-- Доска -->
+        <div class="board-wrapper">
+            <div class="board" id="board"></div>
+        </div>
+
+        <!-- Карточка игрока -->
+        <div id="card-bottom" class="player-card">
+            <div class="player-info">
+                <span>👤</span> <span id="bottom-name">Игрок</span>
+                <span class="elo-badge" id="bottom-elo">100</span>
+            </div>
+            <div id="bottom-time" class="clock-time">--:--</div>
+        </div>
+
+        <!-- История ходов -->
+        <div class="moves-history" id="moves-history">
+            <span>Ходы: -</span>
+        </div>
+
+        <div id="room-info" style="font-size: 11px; color: #C9A227; text-align: center; font-weight: bold;"></div>
+    </div>
+</div>
+
+<script>
+    const symbols = {
+        'r': '♜', 'n': '♞', 'b': '♝', 'q': '♛', 'k': '♚', 'p': '♟',
+        'R': '♜', 'N': '♞', 'B': '♝', 'Q': '♛', 'K': '♚', 'P': '♟'
+    };
+
+    const pieceValues = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 20000 };
+
+    let chess = new Chess();
+    let gameMode = 'pvp';
+    let botDiff = 'easy';
+    let chosenColor = 'white';
+    let userColor = 'white';
+    let pvpFlipped = false;
+    let colors = { light: '#EEEED2', dark: '#769656' };
+    let pieceColors = { white: '#FFFFFF', black: '#111111' };
+    let selectedSquare = null;
+    let possibleMoves = [];
+
+    let draggingPiece = null;
+    let dragFromSquare = null;
+
+    let peer = null;
+    let conn = null;
+
+    let timeControlMinutes = 0;
+    let whiteTime = 0;
+    let blackTime = 0;
+    let timerInterval = null;
+
+    let playerName = localStorage.getItem('chess_player_name') || 'Игрок_' + Math.floor(Math.random()*1000);
+    let playerElo = parseInt(localStorage.getItem('chess_player_elo')) || 100;
+
+    let stats = JSON.parse(localStorage.getItem('chess_stats')) || { total: 0, wins: 0, losses: 0, draws: 0 };
+
+    if (localStorage.getItem('chess_piece_colors')) {
+        pieceColors = JSON.parse(localStorage.getItem('chess_piece_colors'));
+        document.getElementById('whitePiecePicker').value = pieceColors.white;
+        document.getElementById('blackPiecePicker').value = pieceColors.black;
+    }
+    applyPieceColors();
+
+    updateProfileUI();
+
+    function updateProfileUI() {
+        document.getElementById('player-name-display').textContent = playerName;
+        document.getElementById('player-elo-display').textContent = playerElo;
+        document.getElementById('profile-full-name').textContent = playerName;
+        document.getElementById('profile-elo-val').textContent = playerElo;
+
+        document.getElementById('stat-total').textContent = stats.total;
+        document.getElementById('stat-wins').textContent = stats.wins;
+        document.getElementById('stat-losses').textContent = stats.losses;
+        document.getElementById('stat-draws').textContent = stats.draws;
+    }
+
+    function recordGameResult(result) {
+        stats.total++;
+        if (result === 'win') stats.wins++;
+        else if (result === 'loss') stats.losses++;
+        else if (result === 'draw') stats.draws++;
+        localStorage.setItem('chess_stats', JSON.stringify(stats));
+        updateProfileUI();
+    }
+
+    function playClick() {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(600, ctx.currentTime);
+            gain.gain.setValueAtTime(0.15, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.04);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.04);
+        } catch(e) {}
+    }
+
+    function selectBotDiff(diff, btn) {
+        playClick();
+        botDiff = diff;
+        document.querySelectorAll('#bot-diff-pickers .color-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+    }
+
+    function setBotColor(col) {
+        chosenColor = col;
+        document.querySelectorAll('#menu-bot .color-btn').forEach(b => {
+            if (b.id.startsWith('btn-col-')) b.classList.remove('active');
+        });
+        document.getElementById('btn-col-' + col).classList.add('active');
+    }
+
+    function setTheme(name, light, dark, btn) {
+        colors.light = light;
+        colors.dark = dark;
+        localStorage.setItem('chess_colors', JSON.stringify(colors));
+        
+        if (btn) {
+            document.querySelectorAll('#theme-btn-group .color-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+    }
+
+    function updatePieceColors() {
+        pieceColors.white = document.getElementById('whitePiecePicker').value;
+        pieceColors.black = document.getElementById('blackPiecePicker').value;
+        localStorage.setItem('chess_piece_colors', JSON.stringify(pieceColors));
+        applyPieceColors();
+    }
+
+    function applyPieceColors() {
+        document.documentElement.style.setProperty('--white-piece-color', pieceColors.white);
+        document.documentElement.style.setProperty('--black-piece-color', pieceColors.black);
+    }
+
+    if (localStorage.getItem('chess_colors')) {
+        colors = JSON.parse(localStorage.getItem('chess_colors'));
+    }
+
+    function toggleHints() {
+        const isChecked = document.getElementById('hints-toggle').checked;
+        if (isChecked) document.body.classList.add('show-hints');
+        else document.body.classList.remove('show-hints');
+        localStorage.setItem('chess_hints', isChecked);
+    }
+
+    function editProfile() {
+        let newName = prompt("Введите ваш новый никнейм:", playerName);
+        if (newName) {
+            playerName = newName.trim();
+            localStorage.setItem('chess_player_name', playerName);
+            updateProfileUI();
+        }
+    }
+
+    function showScreen(id) {
+        ['menu-main', 'menu-profile', 'menu-mode', 'menu-online', 'menu-bot', 'menu-settings', 'game-screen'].forEach(s => {
+            document.getElementById(s).classList.add('hidden');
+        });
+        if (id !== 'game-screen') stopClock();
+        document.getElementById(id).classList.remove('hidden');
+    }
+
+    function resignGame() {
+        if (confirm("Вы уверены, что хотите сдаться?")) {
+            if (gameMode === 'online') {
+                playerElo = Math.max(10, playerElo - 15);
+                localStorage.setItem('chess_player_elo', playerElo);
+                recordGameResult('loss');
+                updateProfileUI();
+                if (conn) conn.send({ type: 'resign' });
+                alert("Вы сдались! -15 ЭЛО.");
+            } else {
+                alert("Партия завершена.");
+            }
+            exitToMenu();
+        }
+    }
+
+    function startPvP() {
+        gameMode = 'pvp';
+        pvpFlipped = false;
+        timeControlMinutes = 0;
+        chess.reset();
+        showScreen('game-screen');
+        document.getElementById('flip-btn').classList.remove('hidden');
+        document.getElementById('card-top').classList.add('hidden');
+        document.getElementById('card-bottom').classList.add('hidden');
+        document.getElementById('room-info').textContent = "";
+        renderBoard();
+    }
+
+    function flipBoardPvP() {
+        pvpFlipped = !pvpFlipped;
+        renderBoard();
+    }
+
+    function startBotGame() {
+        gameMode = 'pve';
+        timeControlMinutes = parseInt(document.getElementById('time-control').value);
+        
+        if (chosenColor === 'random') {
+            userColor = Math.random() < 0.5 ? 'white' : 'black';
+        } else {
+            userColor = chosenColor;
+        }
+
+        chess.reset();
+        showScreen('game-screen');
+        document.getElementById('flip-btn').classList.add('hidden');
+
+        let botName = "Бот";
+        let botElo = 250;
+        if (botDiff === 'medium') { botName = "Бот Средний"; botElo = 600; }
+        else if (botDiff === 'hard') { botName = "Бот Сложный"; botElo = 1400; }
+        else if (botDiff === 'extreme') { botName = "Магнус Карлсен"; botElo = 2882; }
+
+        let isTopWhite = (userColor === 'black');
+        document.getElementById('top-name').textContent = isTopWhite ? playerName : botName;
+        document.getElementById('top-elo').textContent = isTopWhite ? playerElo : botElo;
+        document.getElementById('bottom-name').textContent = isTopWhite ? botName : playerName;
+        document.getElementById('bottom-elo').textContent = isTopWhite ? botElo : playerElo;
+
+        document.getElementById('card-top').classList.remove('hidden');
+        document.getElementById('card-bottom').classList.remove('hidden');
+
+        if (timeControlMinutes > 0) {
+            whiteTime = timeControlMinutes * 60;
+            blackTime = timeControlMinutes * 60;
+            startClock();
+        } else {
+            document.getElementById('top-time').textContent = "";
+            document.getElementById('bottom-time').textContent = "";
+        }
+
+        renderBoard();
+
+        if (userColor === 'black' && chess.turn() === 'w') {
+            setTimeout(makeBotMove, 400);
+        }
+    }
+
+    function startClock() {
+        stopClock();
+        updateClockDisplay();
+        timerInterval = setInterval(() => {
+            if (chess.game_over()) { stopClock(); return; }
+            if (chess.turn() === 'w') {
+                whiteTime--;
+                if (whiteTime <= 0) { whiteTime = 0; stopClock(); handleTimeOut('w'); }
+            } else {
+                blackTime--;
+                if (blackTime <= 0) { blackTime = 0; stopClock(); handleTimeOut('b'); }
+            }
+            updateClockDisplay();
+        }, 1000);
+    }
+
+    function stopClock() {
+        if (timerInterval) clearInterval(timerInterval);
+    }
+
+    function handleTimeOut(color) {
+        alert("Время вышло!");
+        if (gameMode === 'online') {
+            let userLost = (color === userColor[0]);
+            if (userLost) {
+                playerElo = Math.max(10, playerElo - 15);
+                recordGameResult('loss');
+            } else {
+                playerElo += 15;
+                recordGameResult('win');
+            }
+            localStorage.setItem('chess_player_elo', playerElo);
+            updateProfileUI();
+        }
+        exitToMenu();
+    }
+
+    function updateClockDisplay() {
+        let format = (s) => {
+            let m = Math.floor(s / 60);
+            let sec = s % 60;
+            return m + ":" + (sec < 10 ? "0" : "") + sec;
+        };
+        let isTopWhite = (gameMode === 'pve' && userColor === 'black');
+        
+        document.getElementById('top-time').textContent = format(isTopWhite ? whiteTime : blackTime);
+        document.getElementById('bottom-time').textContent = format(isTopWhite ? blackTime : whiteTime);
+        
+        if (chess.turn() === 'w') {
+            document.getElementById(isTopWhite ? 'card-top' : 'card-bottom').classList.add('active');
+            document.getElementById(isTopWhite ? 'card-bottom' : 'card-top').classList.remove('active');
+        } else {
+            document.getElementById(isTopWhite ? 'card-bottom' : 'card-top').classList.add('active');
+            document.getElementById(isTopWhite ? 'card-top' : 'card-bottom').classList.remove('active');
+        }
+    }
+
+    function generateRoomCode() {
+        return Math.floor(100000 + Math.random() * 900000).toString();
+    }
+
+    function createOnlineGame() {
+        let code = generateRoomCode();
+        timeControlMinutes = parseInt(document.getElementById('online-time-control').value);
+
+        if (peer) peer.destroy();
+        peer = new Peer('chess-room-' + code);
+        
+        peer.on('open', () => {
+            alert("Ваш 6-значный код комнаты: " + code + "\nПередайте его другу!");
+            document.getElementById('room-info').textContent = "Код комнаты: " + code + " (Ожидание...)";
+            showScreen('game-screen');
+            document.getElementById('flip-btn').classList.add('hidden');
+            document.getElementById('card-top').classList.remove('hidden');
+            document.getElementById('card-bottom').classList.remove('hidden');
+            
+            document.getElementById('top-name').textContent = "Соперник (сеть)";
+            document.getElementById('top-elo').textContent = "???";
+            document.getElementById('bottom-name').textContent = playerName;
+            document.getElementById('bottom-elo').textContent = playerElo;
+
+            chess.reset();
+            renderBoard();
+        });
+
+        peer.on('error', () => { createOnlineGame(); });
+
+        peer.on('connection', (connection) => {
+            conn = connection;
+            setupConnection();
+            gameMode = 'online';
+            userColor = 'white';
+            document.getElementById('room-info').textContent = "Друг подключился!";
+            conn.send({ type: 'init', time: timeControlMinutes, name: playerName, elo: playerElo });
+            
+            if (timeControlMinutes > 0) {
+                whiteTime = timeControlMinutes * 60;
+                blackTime = timeControlMinutes * 60;
+                startClock();
+            }
+            renderBoard();
+        });
+    }
+
+    function joinOnlineGame() {
+        let code = document.getElementById('room-code-input').value.trim();
+        if (code.length !== 6) return alert("Введите ровно 6 цифр кода!");
+        
+        if (peer) peer.destroy();
+        peer = new Peer();
+
+        peer.on('open', () => {
+            conn = peer.connect('chess-room-' + code);
+            setupConnection();
+            gameMode = 'online';
+            userColor = 'black';
+            chess.reset();
+            showScreen('game-screen');
+            document.getElementById('flip-btn').classList.add('hidden');
+            document.getElementById('card-top').classList.remove('hidden');
+            document.getElementById('card-bottom').classList.remove('hidden');
+            
+            document.getElementById('top-name').textContent = "Соперник (сеть)";
+            document.getElementById('top-elo').textContent = "???";
+            document.getElementById('bottom-name').textContent = playerName;
+            document.getElementById('bottom-elo').textContent = playerElo;
+
+            renderBoard();
+            document.getElementById('room-info').textContent = "Подключено к комнате " + code + "!";
+        });
+
+        peer.on('error', () => { alert("Комната не найдена!"); });
+    }
+
+    function setupConnection() {
+        conn.on('data', (data) => {
+            if (data.type === 'init') {
+                timeControlMinutes = data.time;
+                document.getElementById('top-name').textContent = data.name;
+                document.getElementById('top-elo').textContent = data.elo;
+                if (timeControlMinutes > 0) {
+                    whiteTime = timeControlMinutes * 60;
+                    blackTime = timeControlMinutes * 60;
+                    startClock();
+                }
+            } else if (data.type === 'move') {
+                animateAndExecuteMove(data.move.from, data.move.to, () => {
+                    chess.move(data.move);
+                    renderBoard();
+                    checkGameOver();
+                });
+            } else if (data.type === 'resign') {
+                alert("Соперник сдался! Вы победили (+15 ЭЛО).");
+                playerElo += 15;
+                recordGameResult('win');
+                localStorage.setItem('chess_player_elo', playerElo);
+                updateProfileUI();
+                exitToMenu();
+            }
+        });
+    }
+
+    function isMyTurn() {
+        let turn = chess.turn();
+        if (gameMode === 'online') {
+            return (turn === 'w' && userColor === 'white') || (turn === 'b' && userColor === 'black');
+        }
+        if (gameMode === 'pve') {
+            return (turn === 'w' && userColor === 'white') || (turn === 'b' && userColor === 'black');
+        }
+        return true;
+    }
+
+    function renderBoard() {
+        const boardEl = document.getElementById('board');
+        boardEl.innerHTML = '';
+        
+        const boardData = chess.board();
+        const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+        const ranks = ['8', '7', '6', '5', '4', '3', '2', '1'];
+
+        let isFlipped = false;
+        if (gameMode === 'online' && userColor === 'black') isFlipped = true;
+        if (gameMode === 'pvp' && pvpFlipped) isFlipped = true;
+        if (gameMode === 'pve' && userColor === 'black') isFlipped = true;
+
+        for (let r = 0; r < 8; r++) {
+            for (let c = 0; c < 8; c++) {
+                let actualR = isFlipped ? 7 - r : r;
+                let actualC = isFlipped ? 7 - c : c;
+                
+                const sq = document.createElement('div');
+                sq.className = 'square';
+                sq.style.backgroundColor = (r + c) % 2 === 0 ? colors.light : colors.dark;
+                sq.dataset.square = files[actualC] + ranks[actualR];
+                
+                const squareName = files[actualC] + ranks[actualR];
+
+                if (selectedSquare === squareName) sq.classList.add('selected');
+
+                const piece = boardData[actualR][actualC];
+                
+                if (possibleMoves.includes(squareName)) {
+                    if (piece) sq.classList.add('capture-ring');
+                    else sq.classList.add('move-dot');
+                }
+
+                if (piece) {
+                    let symbolKey = piece.color === 'w' ? piece.type.toUpperCase() : piece.type;
+                    const pieceEl = document.createElement('div');
+                    pieceEl.textContent = symbols[symbolKey];
+                    pieceEl.className = 'piece ' + (piece.color === 'w' ? 'piece-white' : 'piece-black');
+                    pieceEl.dataset.square = squareName;
+                    
+                    pieceEl.onmousedown = (e) => startDrag(e, squareName, piece);
+                    pieceEl.onttouchstart = (e) => startDrag(e.touches[0], squareName, piece);
+                    sq.appendChild(pieceEl);
+                }
+
+                if (c === 0) {
+                    const rankEl = document.createElement('span');
+                    rankEl.className = 'notation rank';
+                    rankEl.textContent = ranks[actualR];
+                    sq.appendChild(rankEl);
+                }
+                if (r === 7) {
+                    const fileEl = document.createElement('span');
+                    fileEl.className = 'notation file';
+                    fileEl.textContent = files[actualC];
+                    sq.appendChild(fileEl);
+                }
+
+                sq.onclick = () => handleSquareClick(squareName);
+                boardEl.appendChild(sq);
+            }
+        }
+        updateStatusText();
+        updateHistoryUI();
+    }
+
+    function updateHistoryUI() {
+        let history = chess.history();
+        let historyEl = document.getElementById('moves-history');
+        if (history.length === 0) {
+            historyEl.innerHTML = '<span>Ходы: -</span>';
+            return;
+        }
+        let html = '';
+        for (let i = 0; i < history.length; i += 2) {
+            let num = Math.floor(i / 2) + 1;
+            html += `<span>${num}.${history[i]} ${history[i+1] || ''}</span> `;
+        }
+        historyEl.innerHTML = html;
+        historyEl.scrollLeft = historyEl.scrollWidth;
+    }
+
+    function animateAndExecuteMove(from, to, callback) {
+        const boardEl = document.getElementById('board');
+        const fromSq = boardEl.querySelector(`[data-square='${from}']`);
+        const toSq = boardEl.querySelector(`[data-square='${to}']`);
+        
+        if (!fromSq || !toSq) { callback(); return; }
+
+        const pieceEl = fromSq.querySelector('.piece');
+        if (!pieceEl) { callback(); return; }
+
+        const fromPos = fromSq.getBoundingClientRect();
+        const toPos = toSq.getBoundingClientRect();
+
+        const deltaX = toPos.left - fromPos.left;
+        const deltaY = toPos.top - fromPos.top;
+
+        pieceEl.style.zIndex = '100';
+        pieceEl.style.transition = 'transform 0.2s ease-in-out';
+        pieceEl.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+
+        setTimeout(() => { callback(); }, 200);
+    }
+
+    function startDrag(e, squareName, piece) {
+        e.stopPropagation();
+        if (!isMyTurn()) return;
+        if (!piece || piece.color !== chess.turn()) {
+            handleSquareClick(squareName);
+            return;
+        }
+
+        draggingPiece = { square: squareName, symbol: symbols[piece.color === 'w' ? piece.type.toUpperCase() : piece.type], color: piece.color };
+        dragFromSquare = squareName;
+        selectedSquare = squareName;
+        possibleMoves = chess.moves({ square: squareName, verbose: true }).map(m => m.to);
+        renderBoard();
+
+        const ghost = document.getElementById('drag-ghost');
+        ghost.textContent = draggingPiece.symbol;
+        ghost.className = piece.color === 'w' ? 'piece-white' : 'piece-black';
+        ghost.style.display = 'block';
+        updateGhostPos(e);
+
+        window.onmousemove = onDragMove;
+        window.ontouchmove = (evt) => onDragMove(evt.touches[0]);
+        window.onmouseup = onDragEnd;
+        window.ontouchend = onDragEnd;
+    }
+
+    function onDragMove(e) {
+        if (!draggingPiece) return;
+        updateGhostPos(e);
+    }
+
+    function updateGhostPos(e) {
+        const ghost = document.getElementById('drag-ghost');
+        ghost.style.left = e.clientX + 'px';
+        ghost.style.top = e.clientY + 'px';
+    }
+
+    function onDragEnd(e) {
+        if (!draggingPiece) return;
+        document.getElementById('drag-ghost').style.display = 'none';
+
+        let clientX = e.clientX || (e.changedTouches && e.changedTouches[0].clientX);
+        let clientY = e.clientY || (e.changedTouches && e.changedTouches[0].clientY);
+
+        let targetElement = document.elementFromPoint(clientX, clientY);
+        let squareEl = targetElement ? targetElement.closest('.square') : null;
+
+        if (squareEl && squareEl.dataset.square) {
+            let targetSquareName = squareEl.dataset.square;
+            if (possibleMoves.includes(targetSquareName)) {
+                executeMove(dragFromSquare, targetSquareName);
+            }
+        }
+
+        draggingPiece = null;
+        window.onmousemove = null;
+        window.ontouchmove = null;
+        window.onmouseup = null;
+        window.ontouchend = null;
+    }
+
+    function handleSquareClick(sqName) {
+        if (!isMyTurn()) return;
+
+        if (!selectedSquare) {
+            const piece = chess.get(sqName);
+            if (piece && piece.color === chess.turn()) {
+                selectedSquare = sqName;
+                possibleMoves = chess.moves({ square: sqName, verbose: true }).map(m => m.to);
+                renderBoard();
+            }
+        } else {
+            if (possibleMoves.includes(sqName)) {
+                executeMove(selectedSquare, sqName);
+            } else {
+                selectedSquare = null;
+                possibleMoves = [];
+                renderBoard();
+            }
+        }
+    }
+
+    function executeMove(from, to) {
+        animateAndExecuteMove(from, to, () => {
+            let move = chess.move({ from: from, to: to, promotion: 'q' });
+            if (move) {
+                if (gameMode === 'online' && conn) {
+                    conn.send({ type: 'move', move: { from: move.from, to: move.to, promotion: 'q' } });
+                }
+                selectedSquare = null;
+                possibleMoves = [];
+                renderBoard();
+                checkGameOver();
+
+                if (gameMode === 'pve' && !chess.game_over() && !isMyTurn()) {
+                    setTimeout(makeBotMove, 350);
+                }
+            }
+        });
+    }
+
+    function makeBotMove() {
+        let moves = chess.moves({ verbose: true });
+        if (moves.length === 0) return;
+
+        let bestMove = null;
+
+        if (botDiff === 'easy') {
+            bestMove = moves[Math.floor(Math.random() * moves.length)];
+        } 
+        else if (botDiff === 'medium') {
+            let captures = moves.filter(m => m.captured);
+            if (captures.length > 0 && Math.random() < 0.85) {
+                bestMove = captures[Math.floor(Math.random() * captures.length)];
+            } else {
+                bestMove = moves[Math.floor(Math.random() * moves.length)];
+            }
+        } 
+        else {
+            let depth = (botDiff === 'extreme') ? 4 : 3;
+            let bestVal = -Infinity;
+            let isMaximizing = (chess.turn() === 'w');
+
+            moves.sort((a, b) => (b.captured ? pieceValues[b.captured] : 0) - (a.captured ? pieceValues[a.captured] : 0));
+
+            for (let move of moves) {
+                chess.move(move);
+                let value = minimax(depth - 1, false, -Infinity, Infinity, isMaximizing);
+                chess.undo();
+                if (value > bestVal) {
+                    bestVal = value;
+                    bestMove = move;
+                }
+            }
+            if (!bestMove) bestMove = moves[0];
+        }
+
+        if (bestMove) {
+            animateAndExecuteMove(bestMove.from, bestMove.to, () => {
+                chess.move(bestMove);
+                renderBoard();
+                checkGameOver();
+                if (timeControlMinutes > 0) updateClockDisplay();
+            });
+        }
+    }
+
+    function minimax(depth, isMaximizing, alpha, beta, originalMaximizing) {
+        if (depth === 0 || chess.game_over()) {
+            return evaluateBoard(chess.board());
+        }
+        let moves = chess.moves({ verbose: true });
+        if (isMaximizing) {
+            let maxEval = -Infinity;
+            for (let move of moves) {
+                chess.move(move);
+                let evaluation = minimax(depth - 1, false, alpha, beta, originalMaximizing);
+                chess.undo();
+                maxEval = Math.max(maxEval, evaluation);
+                alpha = Math.max(alpha, evaluation);
+                if (beta <= alpha) break;
+            }
+            return maxEval;
+        } else {
+            let minEval = Infinity;
+            for (let move of moves) {
+                chess.move(move);
+                let evaluation = minimax(depth - 1, true, alpha, beta, originalMaximizing);
+                chess.undo();
+                minEval = Math.min(minEval, evaluation);
+                beta = Math.min(beta, evaluation);
+                if (beta <= alpha) break;
+            }
+            return minEval;
+        }
+    }
+
+    function evaluateBoard(board) {
+        let totalEvaluation = 0;
+        for (let r = 0; r < 8; r++) {
+            for (let c = 0; c < 8; c++) {
+                let p = board[r][c];
+                if (p) {
+                    let val = pieceValues[p.type];
+                    if ((r === 3 || r === 4) && (c === 3 || c === 4)) val += 20;
+                    totalEvaluation += (p.color === 'w' ? val : -val);
+                }
+            }
+        }
+        return chess.turn() === 'w' ? totalEvaluation : -totalEvaluation;
+    }
+
+    function updateStatusText() {
+        let status = "";
+        let turnName = chess.turn() === 'w' ? 'Белые' : 'Черные';
+        if (chess.in_checkmate()) {
+            status = `МАТ! ${chess.turn() === 'w' ? 'Черные' : 'Белые'} победили!`;
+            handleGameOverElo(chess.turn() !== userColor[0]);
+        }
+        else if (chess.in_draw()) {
+            status = "Ничья!";
+            if (gameMode === 'online') recordGameResult('draw');
+        }
+        else if (chess.in_check()) status = `ШАХ! Ход: ${turnName}`;
+        else status = `Ход: ${turnName}`;
+        document.getElementById('game-status').textContent = status;
+        if (timeControlMinutes > 0) updateClockDisplay();
+    }
+
+    let gameEnded = false;
+    function handleGameOverElo(playerWon) {
+        if (gameEnded) return;
+        gameEnded = true;
+        if (gameMode === 'online') {
+            if (playerWon) {
+                playerElo += 15;
+                recordGameResult('win');
+                alert("Победа в сетевом матче! +15 ЭЛО");
+            } else {
+                playerElo = Math.max(10, playerElo - 12);
+                recordGameResult('loss');
+                alert("Поражение в сетевом матче. -12 ЭЛО");
+            }
+            localStorage.setItem('chess_player_elo', playerElo);
+            updateProfileUI();
+        }
+    }
+
+    function checkGameOver() {
+        if (chess.game_over()) {
+            stopClock();
+            setTimeout(() => { alert("Игра окончена!"); }, 100);
+        }
+    }
+
+    function exitToMenu() {
+        stopClock();
+        gameEnded = false;
+        if (peer) peer.destroy();
+        showScreen('menu-main');
+    }
+</script>
+
+</body>
+</html>
